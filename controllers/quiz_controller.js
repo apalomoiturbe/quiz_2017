@@ -187,3 +187,101 @@ exports.check = function (req, res, next) {
         answer: answer
     });
 };
+
+function newRamdon(maxP) {                          // random índice válido
+    ret = Math.floor(Math.random() * maxP);
+    //console.log("generando [" + maxP +"]["+ret+"]");
+
+    return ret;
+}
+
+
+function randomQuiz(entorno) {
+    entorno.rndmInex = newRamdon(entorno.allQuiz.length);
+    return createCont(entorno.allQuiz[entorno.rndmInex].id,
+        entorno.allQuiz[entorno.rndmInex].question,
+        entorno.allQuiz[entorno.rndmInex].answer);
+}
+
+function createCont(id, question, answer) {                         //estrucutura del objeto
+    return { "id": id, "question": question, "answer": answer };
+
+}
+
+exports.randomplay = function(req, res, next) {
+
+    var quiz;
+    var entorno;                                    //variable de sesión
+    if (req.session.entorno == null) {              // si no hay sesión iniciada. Inicializamos valores.
+        entorno = { 'score': 0, 'result': true, 'allQuiz': [], 'rndmInex': 0 };
+    } else {
+        entorno = req.session.entorno;  // si no mantenemos los que había
+    }
+
+    if (!entorno.result || !entorno.allQuiz.length) { // hemos fallado o hemos acertado todos
+
+        entorno.score = 0;                             // Puntuación a 0
+        while (entorno.allQuiz.length) {               // vamos eliminando de la base de datos
+            entorno.allQuiz.pop();
+        }
+        models.Quiz.findAll()                           //Extraemos valores de la base de datos
+            .then(function(iuiz) {
+                for (var i in iuiz) {
+                    entorno.allQuiz.push(createCont(iuiz[i].id, iuiz[i].question, iuiz[i].answer)); // y los introducimos en entorno
+                }
+                quiz = randomQuiz(entorno);                 // Generar quiz aleatorio (var=)
+                req.session.entorno = entorno;  // guardamos en sesion
+                randomRender(req, res, next, quiz);             // renderizamos
+            })
+    } else {
+        quiz = randomQuiz(entorno);                         //var
+        req.session.entorno = entorno;
+        randomRender(req, res, next, quiz);
+    }
+
+};
+
+function randomRender(req, res, next, quiz) {
+    var entorno;
+    if (req.session.entorno == null) {
+        entorno = { 'score': 0, 'result': true, 'allQuiz': [], 'rndmInex': 0 };
+
+    } else {
+        entorno = req.session.entorno;          // Coger datos de la sesión
+    }
+    res.render('quizzes/random_play.ejs', {                 // renderizar incrustando code en quiz, score, answer
+        quiz: quiz,
+        score: entorno.score,
+        answer: quiz.answer
+    });
+}
+// GET /quizzes/randomcheck
+
+exports.randomcheck = function(req, res, next) {
+
+    if (req.session.entorno == null) {
+        entorno = { 'score': 0, 'result': true, 'allQuiz': [], 'rndmInex': 0 };
+    } else {
+        entorno = req.session.entorno;          // coger datos de sesion || var globales 
+    }
+    var answer = req.query.answer || "";                    // pillar la anser de la query(url)
+    entorno.result = answer.toLowerCase().trim() === req.quiz.answer.toLowerCase().trim();
+    entorno.score += entorno.result ? 1 : -entorno.score;
+    if (entorno.result) {
+
+
+        entorno.allQuiz.splice(entorno.rndmInex, 1);        // eliminamos quiz
+	
+    }
+    req.session.entorno = entorno;          // actualizamos datos de sesion
+    if (entorno.allQuiz.length) {           //mientras haya quizzes se renderiza random_result
+ res.render('quizzes/random_result.ejs', {
+             quiz: req.quiz,
+             score: entorno.score,
+             answer: answer,
+             result: entorno.result
+         });
+    } else {
+      res.render('quizzes/random_nomore.ejs', { score: entorno.score }); //no quizzes, ya has ganado
+}
+};
