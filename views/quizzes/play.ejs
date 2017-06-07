@@ -1,25 +1,23 @@
-
-
-<div class="right">
-    <small> (by <%= quiz.Author ? quiz.Author.username : "Anómino" %>) </small>
-</div>
-
 <h1>
-    Jugar:
+    Juego Aleatorio:
 </h1>
 
-<form method="get" action="/quizzes/<%= quiz.id %>/check">
+<div>
+    Preguntas acertadas = <span id="score"><%= score %></span>
+</div>
+
+<form method="get" action="/quizzes/randomcheck/<%= quiz.id %>">
+
     <p>
         Pregunta: <b><%= quiz.question %></b>
     </p>
 
 
     <div class="wideRow">
-        <input type="text" class="itemWide" name="answer" value="<%= answer %>" placeholder="Respuesta" autocomplete="off"/>
-        <input type="submit" class="itemNarrow" value="Comprobar">
+        <input type="text" class="itemWide" id="answer" name="answer" value="" placeholder="Respuesta" autocomplete="off"/>
+        <input type="submit" class="itemNarrow" id="send" value="Comprobar">
     </div>
 </form>
-
 
 <h1>
     Pistas:
